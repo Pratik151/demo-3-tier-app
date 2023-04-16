@@ -1,0 +1,10 @@
+MASTER_DB_USERNAME=admin
+MASTER_DB_PASSWORD=admin123
+MASTER_DB_HOSTNAME=demo-app-mydbinstance-4v4tuzy0kmxo.c2wn2nohmkqc.us-east-1.rds.amazonaws.com
+MASTER_DATABASE_PORT=3306
+MASTER_DATABASE_NAME=DEMODB
+READ_DB_USERNAME=admin
+READ_DB_PASSWORD=admin123
+READ_DB_HOSTNAME=mydb-replica.c2wn2nohmkqc.us-east-1.rds.amazonaws.com
+READ_DATABASE_PORT=3306
+READ_DATABASE_NAME=DEMODB

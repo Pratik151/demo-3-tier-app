@@ -1,1 +1,1 @@
-# demo-3-tier-app
+# 3-tier-app-demo

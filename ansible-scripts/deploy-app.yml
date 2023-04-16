@@ -1,0 +1,12 @@
+# Ansible playbook AWS - install docker
+---
+- name: "Setup flask app"
+  hosts: host
+  tasks:
+    - name: Copy DB config file
+      copy:
+        src: ../demo-app-flask/.db_details
+        dest: /home/ec2-user/.db_details
+
+    - name: Install docker and flask app
+      script: ./install.sh

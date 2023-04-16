@@ -1,0 +1,302 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS resources for 3-tier-web app demo application
+
+Parameters:
+  VpcCIDR:
+    Type: String
+    Default: "10.0.0.0/16"
+    Description: CIDR block for the VPC
+  PublicSubnetCIDR:
+    Type: String
+    Default: "10.0.1.0/24"
+    Description: CIDR block for the public subnet
+  PrivateSubnetCIDR:
+    Type: String
+    Default: "10.0.2.0/24"
+    Description: CIDR block for the private subnet
+
+Resources:
+  DemoVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: DemoVPC
+
+  DemoInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: DemoInternetGateway
+
+  DemoVPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref DemoVPC
+      InternetGatewayId: !Ref DemoInternetGateway
+
+  DemoPublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref DemoVPC
+      CidrBlock: !Ref PublicSubnetCIDR
+      AvailabilityZone: !Select [ 0, !GetAZs "" ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: DemoPublicSubnetA
+
+  DemoPublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref DemoVPC
+      CidrBlock: '10.0.3.0/24'
+      AvailabilityZone: !Select [ 1, !GetAZs "" ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: DemoPublicSubnetB
+
+  DemoPrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref DemoVPC
+      CidrBlock: !Ref PrivateSubnetCIDR
+      AvailabilityZone: !Select [ 0, !GetAZs "" ]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: DemoPrivateSubnet
+
+  DemoPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref DemoVPC
+      Tags:
+        - Key: Name
+          Value: DemoPublicRouteTable
+
+  DemoPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref DemoVPC
+      Tags:
+        - Key: Name
+          Value: DemoPrivateRouteTable
+
+  DemoPublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref DemoPublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref DemoInternetGateway
+
+  DemoPublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref DemoPublicSubnetA
+      RouteTableId: !Ref DemoPublicRouteTable
+
+  DemoPublicSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref DemoPublicSubnetB
+      RouteTableId: !Ref DemoPublicRouteTable
+
+  DemoPrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref DemoPrivateSubnet
+      RouteTableId: !Ref DemoPrivateRouteTable   
+
+  MyDBInstance:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBInstanceClass: db.t3.micro
+      Engine: mysql
+      MasterUsername: admin
+      MasterUserPassword: admin123
+      DBName: mydb
+      MultiAZ: false
+      AllocatedStorage: "20"
+      StorageType: gp2
+      BackupRetentionPeriod: "7"
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref DBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: MyDBInstance
+  MyDBReplica:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBInstanceClass: db.t3.micro
+      Engine: mysql
+      DBInstanceIdentifier: mydb-replica
+      SourceDBInstanceIdentifier: !Ref MyDBInstance
+      VPCSecurityGroups:
+        - !Ref DBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: MyDBReplica
+  DBSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Security group for RDS instance"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: "3306"
+          ToPort: "3306"
+          CidrIp: "0.0.0.0/0"
+      VpcId: !Ref DemoVPC
+  DBSubnetGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties:
+      DBSubnetGroupDescription: "Subnet group for RDS instance"
+      SubnetIds:
+        - !Ref DemoPublicSubnetA
+        - !Ref DemoPublicSubnetB
+      Tags:
+        - Key: Name
+          Value: DBSubnetGroup
+
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: ssh-access
+      GroupDescription: Allow SSH access to EC2 instances
+      VpcId: !Ref DemoVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+  ActiveInstance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-06e46074ae430fba6
+      InstanceType: t2.micro
+      KeyName: demo-key
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      SubnetId: !Ref DemoPublicSubnetA
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            echo export HOST_TYPE="ACTIVE" >> /etc/profile
+      Tags:
+        - Key: Name
+          Value: ActiveHost1
+  PassiveInstance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-06e46074ae430fba6
+      InstanceType: t2.micro
+      KeyName: demo-key
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      SubnetId: !Ref DemoPublicSubnetA
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            echo export HOST_TYPE="PASSIVE" >> /etc/profile
+      Tags:
+        - Key: Name
+          Value: PassiveHost1
+
+  ActiveTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Name: active-target-group
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      VpcId: !Ref DemoVPC
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /healthcheck
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      Targets:
+      - Id: !Ref ActiveInstance1
+        Port: 8000
+
+  PassiveTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Name: passive-target-group
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      VpcId: !Ref DemoVPC
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: /healthcheck
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      Targets:
+      - Id: !Ref PassiveInstance1
+        Port: 8000
+
+  AppLoadBalancer:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      Name: active-demo-app-lb
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        - !Ref DemoPublicSubnetA
+        - !Ref DemoPublicSubnetB
+      SecurityGroups:
+        - !Ref EC2SecurityGroup
+      Tags:
+        - Key: Name
+          Value: active-demo-app-lb
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: "60"
+    DependsOn: DemoVPCGatewayAttachment
+
+  Listener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ActiveTargetGroup
+      LoadBalancerArn: !Ref AppLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+Outputs:
+  ActiveHost1IP:
+    Description: Server Public IP
+    Value: !GetAtt ActiveInstance1.PublicIp
+  PassiveHost1IP:
+    Description: Server Public IP
+    Value: !GetAtt PassiveInstance1.PublicIp
+  RDSMasterHost:
+    Description: RDS primary Instance DNS
+    Value: !GetAtt MyDBInstance.Endpoint.Address
+  RDSReadOnlyHost:
+    Description: RDS Read only Instance DNS
+    Value: !GetAtt MyDBReplica.Endpoint.Address
+  LoadBalancerDNS:
+    Description: DNS name of the ALB
+    Value: !GetAtt AppLoadBalancer.DNSName

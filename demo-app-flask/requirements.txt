@@ -1,0 +1,5 @@
+Flask==2.2.3
+SQLAlchemy==2.0.9
+pymysql==1.0.3
+opentelemetry-distro
+opentelemetry-exporter-otlp
