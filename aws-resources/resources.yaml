@@ -227,7 +227,7 @@ Resources:
       Protocol: HTTP
       TargetType: instance
       VpcId: !Ref DemoVPC
-      HealthCheckIntervalSeconds: 5
+      HealthCheckIntervalSeconds: 10
       HealthCheckPath: /healthcheck
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
@@ -245,7 +245,7 @@ Resources:
       Protocol: HTTP
       TargetType: instance
       VpcId: !Ref DemoVPC
-      HealthCheckIntervalSeconds: 5
+      HealthCheckIntervalSeconds: 10
       HealthCheckPath: /healthcheck
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
