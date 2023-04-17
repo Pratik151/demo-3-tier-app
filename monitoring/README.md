@@ -25,3 +25,15 @@ Install Jaeger on host:
  Ref: https://github.com/Pratik151/demo-3-tier-app/blob/main/demo-app-flask/Dockerfile
   
 - Sample screenshots:
+
+All operations
+![All operations](https://github.com/Pratik151/demo-3-tier-app/blob/main/monitoring/All%20operations%20for%20Application.png)
+
+Traces showing error when failed
+![Traces showing error when failed](https://github.com/Pratik151/demo-3-tier-app/blob/main/monitoring/Trace%20showing%20error%20traces.png)
+
+Details of Failed transaction
+![Details of Failed transaction](https://github.com/Pratik151/demo-3-tier-app/blob/main/monitoring/Detail%20of%20error%20for%20failed%20transaction.png)
+
+Trace showing DB call details
+![Trace showing DB call details](https://github.com/Pratik151/demo-3-tier-app/blob/main/monitoring/Trace%20showing%20DB%20calls.png)
