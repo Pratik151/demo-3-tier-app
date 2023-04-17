@@ -16,6 +16,7 @@ Each folder has README.md file for providing more details about specific task. F
 - To load Excel data to DB refer *data-load-script* 
 - Refer *ansible-scripts* for setting up docker and running application image
 - Application code in *demo-app-flask*
+- Refer *monitoring* directory for details about monitoring setup
 
 
 ![Architecture](https://github.com/Pratik151/demo-3-tier-app/blob/main/AWS_Architecture.png)
